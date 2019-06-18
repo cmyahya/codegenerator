@@ -1,0 +1,101 @@
+buildscript {
+	ext {
+		springBootVersion = '2.0.3.RELEASE'
+	}
+	repositories {
+		mavenCentral()
+		jcenter()
+	}
+}
+
+plugins {
+	id 'org.sonarqube' version '2.6.2'
+	id 'org.springframework.boot' version '2.0.3.RELEASE'
+	id "net.ltgt.apt-idea" version "0.17"
+}
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'idea'
+apply plugin: 'findbugs'
+apply plugin: 'org.sonarqube'
+apply plugin: "jacoco"
+
+group = 'com.api.<%= className.toLowerCase() %>'
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+findbugs {
+	ignoreFailures=true
+	findbugsTest.enabled=false
+}
+
+tasks.withType(FindBugs) {
+	reports {
+		xml.enabled = false
+		html.enabled = true
+	}
+}
+
+tasks.withType(FindBugs){
+	exclude("**/client/sss/*")
+}
+
+jacoco {
+	toolVersion = "0.8.1"
+	reportsDir = file("$buildDir/reports/jacoco")
+}
+jacocoTestReport {
+	reports {
+		xml.enabled false
+		csv.enabled false
+		html.destination file("${buildDir}/reports/jacoco/jacocoHtml")
+	}
+
+	test {
+		jacoco {
+			excludes = ["**/downstream/**"]
+		}
+	}
+}
+
+test {
+    if (System.getProperty('DEBUG', 'false') == 'true') {
+        jvmArgs '-Xdebug',
+            '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005'
+    }
+    jacoco {
+        append = false
+        destinationFile = file("$buildDir/jacoco/jacocoTest.exec")
+        classDumpDir = file("$buildDir/jacoco/classpathdumps")
+    }
+}
+repositories {
+	mavenCentral()
+	maven{
+		credentials {
+			username = project.property('mavenUser')
+			password = project.property('mavenPassword')
+		}
+		url 'server url'
+	}
+}
+
+tasks.withType(FindBugs){
+	exclude '**/api/downstream/*'
+}
+
+bootJar {
+	baseName = '<%= serviceName.toLowerCase()%>'
+	archiveName '<%= serviceName.toLowerCase()%>-' + project.property('buildInfo.build.number') + '.jar'
+}
+
+dependencies {
+	compile('org.springframework.boot:spring-boot-starter-actuator:2.0.3.RELEASE')
+	compile('org.springframework.boot:spring-boot-starter-web:2.0.3.RELEASE')	
+	compile('io.springfox:springfox-swagger2:2.8.0')
+	compile('io.springfox:springfox-swagger-ui:2.8.0')
+	compile('org.mapstruct:mapstruct-jdk8:1.2.0.Final')
+	apt ('org.mapstruct:mapstruct-processor:1.2.0.Final')
+	testCompile('org.springframework.boot:spring-boot-starter-test:2.0.3.RELEASE')
+}
